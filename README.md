@@ -1,4 +1,4 @@
-# yagsvc: yag macroservice
+# webapi: web api gateway
 
 Provides CRUD APIs for handling all queries from the UI, including user authentication, application search, and more.
 Check https://yag.im/api/docs/ for details.
@@ -50,10 +50,10 @@ You need to use "localhost" as OAuth providers wouldn't work with other domains.
 ## Swagger UI notes
 
     git clone --depth=1 --single-branch --branch "master" https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
-    cp /tmp/swagger-ui/dist/*.css /workspaces/yagsvc/yagsvc/static/css
-    cp /tmp/swagger-ui/dist/*.png /workspaces/yagsvc/yagsvc/static/img
-    cp /tmp/swagger-ui/dist/*.js /workspaces/yagsvc/yagsvc/static/js
-    cp /tmp/swagger-ui/dist/index.html /workspaces/yagsvc/yagsvc/templates/swaggerui.html
+    cp /tmp/swagger-ui/dist/*.css /workspaces/webapi/webapi/static/css
+    cp /tmp/swagger-ui/dist/*.png /workspaces/webapi/webapi/static/img
+    cp /tmp/swagger-ui/dist/*.js /workspaces/webapi/webapi/static/js
+    cp /tmp/swagger-ui/dist/index.html /workspaces/webapi/webapi/templates/swaggerui.html
 
 Then modify:
 

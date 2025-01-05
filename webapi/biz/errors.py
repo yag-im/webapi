@@ -9,11 +9,11 @@ from flask import (
 from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
-ERROR_YAG_OP = (1409, "yagsvc operational error")
+ERROR_YAG_OP = (1409, "webapi operational error")
 ERROR_APPSVC = (1409, "appsvc error")
 ERROR_UNKNOWN = (1500, "unknown error")
 
-log = logging.getLogger("yagsvc")
+log = logging.getLogger("webapi")
 
 
 class BizException(Exception):

@@ -9,28 +9,28 @@ from flask import (
     url_for,
 )
 
-from yagsvc.api.account import (
+from webapi.api.account import (
     get_user,
     update_user,
 )
-from yagsvc.api.app import (
+from webapi.api.app import (
     get_app_release,
     search_apps,
     search_apps_acl,
 )
-from yagsvc.api.auth import (
+from webapi.api.auth import (
     login_discord,
     login_google,
     login_reddit,
     login_twitch,
     logout,
 )
-from yagsvc.dto.account import (
+from webapi.dto.account import (
     GetUserResponseDTO,
     UpdateUserRequestDTO,
 )
-from yagsvc.dto.app import SearchAppsRequestDTO
-from yagsvc.services.dto.appsvc import (
+from webapi.dto.app import SearchAppsRequestDTO
+from webapi.services.dto.appsvc import (
     GetAppReleaseResponseDTO,
     SearchAppsAclRequestDTO,
     SearchAppsAclResponseDTO,
@@ -38,7 +38,7 @@ from yagsvc.services.dto.appsvc import (
 )
 
 spec = APISpec(
-    title="yagsvc",
+    title="webapi",
     version="1.0.0",
     openapi_version="3.0.2",
     plugins=[FlaskPlugin(), MarshmallowPlugin()],

@@ -1,7 +1,7 @@
-from yagsvc.biz.misc import log_input_output
-from yagsvc.dto.account import UpdateUserRequestDTO
-from yagsvc.models.account import UserDAO
-from yagsvc.sqldb import sqldb
+from webapi.biz.misc import log_input_output
+from webapi.dto.account import UpdateUserRequestDTO
+from webapi.models.account import UserDAO
+from webapi.sqldb import sqldb
 
 
 def get_user(user_id: int) -> UserDAO:

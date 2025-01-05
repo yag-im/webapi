@@ -3,7 +3,7 @@ FROM python:3.11-bookworm
 
 ARG DEBIAN_FRONTEND=noninteractive
 
-ARG APP_HOME_DIR=/opt/yag/yagsvc
+ARG APP_HOME_DIR=/opt/yag/webapi
 
 RUN apt update \
     && apt install -y --no-install-recommends \

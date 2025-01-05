@@ -10,7 +10,7 @@ from sqlalchemy.dialects.postgresql import (
     JSONB,
 )
 
-from yagsvc.sqldb import sqldb
+from webapi.sqldb import sqldb
 
 
 class UserDAO(UserMixin, sqldb.Model):

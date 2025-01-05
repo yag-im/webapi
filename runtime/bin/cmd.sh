@@ -21,4 +21,4 @@ exec "gunicorn" \
     --limit-request-field_size 0 \
     --threads ${GUNICORN_NUM_THREADS} \
     -c "${APP_HOME_DIR}/conf/gunicorn.config.py" \
-    yagsvc:create_app\(\)
+    webapi:create_app\(\)

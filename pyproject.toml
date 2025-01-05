@@ -1,15 +1,15 @@
 [build-system]
 build-backend = "poetry_dynamic_versioning.backend"
-requires = ["poetry-core", "poetry-dynamic-versioning"]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 
 [tool.poetry]
 authors = ["yag-im"]
 description = "yag macroservices"
 keywords = ["signaling"]
-name = "yagsvc"
+name = "webapi"
 readme = "README.md"
 version = "0.0.0"
-packages = [{ include = "yagsvc" }]
+packages = [{ include = "webapi" }]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -64,7 +64,7 @@ profile = "black"
 multi_line_output = 3
 skip = "target"
 skip_glob = "**/gen/*,.venv*/*,venv*/*,.tox/*"
-known_first_party = "yagsvc"
+known_first_party = "webapi"
 
 [tool.mypy]
 disallow_incomplete_defs = true

@@ -6,8 +6,8 @@ from sqlalchemy import (
     String,
 )
 
-from yagsvc.models.account import UserDAO
-from yagsvc.sqldb import sqldb
+from webapi.models.account import UserDAO
+from webapi.sqldb import sqldb
 
 
 class FlaskDanceOauth(OAuthConsumerMixin, sqldb.Model):

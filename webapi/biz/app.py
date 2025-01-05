@@ -6,9 +6,9 @@ from flask_login import (
     current_user,
 )
 
-from yagsvc.dto.app import SearchAppsRequestDTO
-from yagsvc.services import appsvc
-from yagsvc.services.dto.appsvc import (
+from webapi.dto.app import SearchAppsRequestDTO
+from webapi.services import appsvc
+from webapi.services.dto.appsvc import (
     GetAppReleaseResponseDTO,
     SearchAppsAclRequestDTO,
     SearchAppsAclResponseDTO,

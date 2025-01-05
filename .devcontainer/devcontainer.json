@@ -1,14 +1,14 @@
 {
-    "name": "yag-yagsvc",
+    "name": "yag-webapi",
     "build": {
         "dockerfile": "Dockerfile"
     },
     "runArgs": [
-        "--name=yag-yagsvc",
+        "--name=yag-webapi",
         "--add-host=appsvc.yag.dc:host-gateway",
         "--add-host=sqldb.yag.dc:host-gateway",
         "--env-file=${localWorkspaceFolder}/.devcontainer/.env",
-        "--env-file=${localWorkspaceFolder}/.devcontainer/secret.env"
+        "--env-file=${localWorkspaceFolder}/.devcontainer/secrets.env"
 	],
     "customizations": {
         "vscode": {

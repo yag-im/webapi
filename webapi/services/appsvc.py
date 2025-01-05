@@ -1,15 +1,15 @@
 import json
 import os
 
-from yagsvc.biz.errors import AppSvcException
-from yagsvc.services.dto.appsvc import (
+from webapi.biz.errors import AppSvcException
+from webapi.services.dto.appsvc import (
     GetAppReleaseResponseDTO,
     SearchAppsAclRequestDTO,
     SearchAppsAclResponseDTO,
     SearchAppsRequestOutDTO,
     SearchAppsResponseDTO,
 )
-from yagsvc.services.helpers import get_requests_session
+from webapi.services.helpers import get_requests_session
 
 REQUESTS_TIMEOUT_CONN_READ = (3, 10)
 APPSVC_URL = os.environ["APPSVC_URL"]

@@ -7,7 +7,7 @@ from marshmallow import (
 )
 from marshmallow_dataclass import dataclass
 
-from yagsvc.services.dto.appsvc import SearchAppsOrderBy
+from webapi.services.dto.appsvc import SearchAppsOrderBy
 
 
 @dataclass

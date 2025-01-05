@@ -1,4 +1,4 @@
 _extends: .github:settings.yml
 repository:
-  name: yagsvc
-  description: Orchestration layer
+  name: webapi
+  description: web api gateway

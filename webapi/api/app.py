@@ -4,9 +4,9 @@ from flask import (
     request,
 )
 
-import yagsvc.biz.app as biz_app
-from yagsvc.dto.app import SearchAppsRequestDTO
-from yagsvc.services.dto.appsvc import (
+import webapi.biz.app as biz_app
+from webapi.dto.app import SearchAppsRequestDTO
+from webapi.services.dto.appsvc import (
     GetAppReleaseResponseDTO,
     SearchAppsAclRequestDTO,
     SearchAppsAclResponseDTO,
@@ -34,8 +34,6 @@ def get_app_release(app_release_uuid: str) -> Response:
                 content:
                     application/json:
                         schema: GetAppReleaseResponseDTO
-            401:
-                description: Unauthorized user.
     """
     return GetAppReleaseResponseDTO.Schema().dump(biz_app.get_app_release(app_release_uuid))
 
@@ -58,8 +56,6 @@ def search_apps() -> Response:
                 content:
                     application/json:
                         schema: SearchAppsResponseDTO
-            401:
-                description: Unauthorized user.
     """
     req: SearchAppsRequestDTO = SearchAppsRequestDTO.Schema().load(data=request.get_json())
     return SearchAppsResponseDTO.Schema().dump(biz_app.search_apps(req))
@@ -83,8 +79,6 @@ def search_apps_acl() -> Response:
                 content:
                     application/json:
                         schema: SearchAppsAclResponseDTO
-            401:
-                description: Unauthorized user.
     """
     req: SearchAppsAclRequestDTO = SearchAppsAclRequestDTO.Schema().load(data=request.get_json())
     return SearchAppsAclResponseDTO.Schema().dump(biz_app.search_apps_acl(req))

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-mkdir -p /workspaces/yagsvc/.vscode
-cp /workspaces/yagsvc/.devcontainer/vscode/* /workspaces/yagsvc/.vscode
+mkdir -p /workspaces/webapi/.vscode
+cp /workspaces/webapi/.devcontainer/vscode/* /workspaces/webapi/.vscode
 
 make bootstrap

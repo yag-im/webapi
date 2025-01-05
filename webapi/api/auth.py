@@ -1,15 +1,18 @@
 import os
 import typing as t
+import uuid
 from http import HTTPStatus
 
 import flask
 from flask import (
     Blueprint,
+    Response,
     abort,
 )
 from flask import current_app as app
 from flask import (
     redirect,
+    request,
     url_for,
 )
 from flask_dance.consumer import (
@@ -35,15 +38,18 @@ from flask_dance.contrib.twitch import (
 )
 from flask_login import (
     LoginManager,
+    current_user,
     login_required,
     login_user,
     logout_user,
 )
 from sqlalchemy.orm.exc import NoResultFound
 
-from yagsvc.models.account import UserDAO
-from yagsvc.models.auth import FlaskDanceOauth
-from yagsvc.sqldb import sqldb
+from webapi.models.account import UserDAO
+from webapi.models.auth import FlaskDanceOauth
+from webapi.sqldb import sqldb
+
+SIGSVC_AUTH_TOKEN = os.environ["SIGSVC_AUTH_TOKEN"]
 
 login_manager = LoginManager()
 
@@ -204,7 +210,7 @@ def before_login(blueprint: OAuth2ConsumerBlueprint, url: str) -> None:
     flask.session["next_url"] = flask.request.args.get("next_url")
 
 
-bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+bp = Blueprint("auth", __name__, url_prefix="/auth")
 
 
 @bp.route("/google", methods=["GET"])
@@ -300,3 +306,46 @@ def logout() -> None:
     """
     logout_user()
     return redirect("/")
+
+
+@bp.route("/verify/user", methods=["GET"])
+@login_required
+def auth_verify_user() -> Response:
+    """
+    ---
+    get:
+        summary: Authenticate user (flask's "session" cookie)
+        tags:
+            - auth
+        responses:
+            401:
+                description: Unauthorized user.
+    """
+    resp = flask.make_response()
+    resp.headers["UID"] = str(current_user.id)
+    return resp, 200
+
+
+@bp.route("/verify/app", methods=["GET"])
+def auth_verify_app() -> Response:
+    """
+    ---
+    get:
+        summary: Authenticate app (various authtoken cookies)
+        tags:
+            - auth
+        responses:
+            401:
+                description: Unauthorized app.
+    """
+    # TODO: work on a better and secure implementation
+    # e.g. we must accept consumer ids and auth token should be signed with a temp signature
+    sigsvc_auth_token = request.cookies.get("sigsvc_authtoken", None)
+    foo_auth_token = request.cookies.get("foo_authtoken", None)
+    if not sigsvc_auth_token and not foo_auth_token:
+        return "", 401
+    if sigsvc_auth_token and sigsvc_auth_token != SIGSVC_AUTH_TOKEN:
+        return "", 401
+    if foo_auth_token and foo_auth_token != str(uuid.uuid4()):
+        return "", 401
+    return "", 200

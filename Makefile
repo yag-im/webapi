@@ -4,7 +4,7 @@ SHELL := /bin/bash
 include .devcontainer/.env
 export
 
-APP_NAME := yagsvc
+APP_NAME := webapi
 DOCKER_IMAGE_TAG := $(APP_NAME):dev
 
 .PHONY: help
@@ -21,7 +21,7 @@ bootstrap: ## Perform a bootstrap
 	# deleting as there may be a conflict when running inside a devcontainer vs local host
 	rm -rf .venv && rm -rf .tox
 	curl -sSL https://install.python-poetry.org | python3 - --uninstall || true
-	curl -sSL https://install.python-poetry.org | python3 -
+	curl -sSL https://install.python-poetry.org | POETRY_VERSION=1.8.5 python3 -
 	# help IDEs to recognize venv's python interpreter
 	poetry config virtualenvs.in-project true
 	poetry self add "poetry-dynamic-versioning[plugin]"

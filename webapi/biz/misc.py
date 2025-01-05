@@ -1,7 +1,7 @@
 import logging
 import typing as t
 
-log = logging.getLogger("yagsvc")
+log = logging.getLogger("webapi")
 
 
 @t.no_type_check

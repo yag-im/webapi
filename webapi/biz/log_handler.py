@@ -15,7 +15,7 @@ def init_app(app: Flask) -> None:
     app.logger.addHandler(handler)
     app.logger.setLevel(log_level)
 
-    jbs_logger = logging.getLogger("yagsvc")
+    jbs_logger = logging.getLogger("webapi")
     jbs_logger.handlers.clear()
     jbs_logger.addHandler(handler)
     jbs_logger.setLevel(log_level)
