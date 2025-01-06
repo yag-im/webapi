@@ -1,7 +1,10 @@
 import logging
 import os
 
-from flask import Flask
+from flask import (
+    Flask,
+    request,
+)
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 from webapi.api import apispec
@@ -55,10 +58,10 @@ def create_app() -> Flask:
     apispec.init_app(app)
 
     # pylint: disable=pointless-string-statement
-    """
+
     @app.before_request
     def log_request() -> None:
         log.info(request.__dict__)
         log.info(request.headers)
-    """
+
     return app
