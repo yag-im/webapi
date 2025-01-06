@@ -28,8 +28,10 @@ def get_user() -> Response:
                     application/json:
                         schema: GetUserResponseDTO
     """
-    user_id = int(request.headers.get(HTTP_HEADER_X_UID))
-    user = biz_account.get_user(user_id)
+    user_id = request.headers.get(HTTP_HEADER_X_UID, None)
+    if not user_id:
+        return "", 401
+    user = biz_account.get_user(int(user_id))
     return GetUserResponseDTO.Schema().dump(user)
 
 
@@ -52,7 +54,9 @@ def update_user() -> Response:
             401:
                 description: Unauthorized user.
     """
-    user_id = int(request.headers.get(HTTP_HEADER_X_UID))
+    user_id = request.headers.get(HTTP_HEADER_X_UID, None)
+    if not user_id:
+        return "", 401
     user = UpdateUserRequestDTO.Schema().load(data=request.get_json())
-    biz_account.update_user(user_id, user)
+    biz_account.update_user(int(user_id), user)
     return "", 200
