@@ -327,9 +327,9 @@ def auth_verify_user() -> Response:
     return resp, 200
 
 
-@bp.route("/verify/user/<path:_>", methods=["GET"])
+@bp.route("/verify/user/<path:path>", methods=["GET"])
 @login_required
-def auth_verify_user_new() -> Response:
+def auth_verify_user_new(path: str) -> Response:  # pylint: disable=unused-argument
     """
     ---
     get:
