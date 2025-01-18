@@ -309,27 +309,11 @@ def logout() -> None:
     return redirect("/")
 
 
-@bp.route("/verify/user", methods=["GET"])
-@login_required
-def auth_verify_user() -> Response:
-    """
-    ---
-    get:
-        summary: Authenticate user (flask's "session" cookie)
-        tags:
-            - auth
-        responses:
-            401:
-                description: Unauthorized user.
-    """
-    resp = flask.make_response()
-    resp.headers["UID"] = str(current_user.id)
-    return resp, 200
-
-
+# because istio adds original requested resource path to the end, we need a wildcard pattern here
+@bp.route("/verify/user", methods=["GET"], defaults={"path": ""})
 @bp.route("/verify/user/<path:path>", methods=["GET"])
 @login_required
-def auth_verify_user_new(path: str) -> Response:  # pylint: disable=unused-argument
+def auth_verify_user(path: str) -> Response:  # pylint: disable=unused-argument
     """
     ---
     get:
@@ -341,12 +325,14 @@ def auth_verify_user_new(path: str) -> Response:  # pylint: disable=unused-argum
                 description: Unauthorized user.
     """
     resp = flask.make_response()
+    resp.headers["UID"] = str(current_user.id)  # TODO: obsolete, drop
     resp.headers[HTTP_HEADER_X_AUTH_UID] = str(current_user.id)
     return resp, 200
 
 
-@bp.route("/verify/app", methods=["GET"])
-def auth_verify_app() -> Response:
+@bp.route("/verify/app", methods=["GET"], defaults={"path": ""})
+@bp.route("/verify/app/<path:path>", methods=["GET"])
+def auth_verify_app(path: str) -> Response:  # pylint: disable=unused-argument
     """
     ---
     get:
