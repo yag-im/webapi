@@ -327,7 +327,7 @@ def auth_verify_user() -> Response:
     return resp, 200
 
 
-@bp.route("/verify/user/<path>", methods=["GET"])
+@bp.route("/verify/user/<path:_>", methods=["GET"])
 @login_required
 def auth_verify_user_new() -> Response:
     """
