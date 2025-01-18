@@ -1,1 +1,2 @@
 HTTP_HEADER_X_UID = "X-UID"
+HTTP_HEADER_X_AUTH_UID = "x-auth-uid"

@@ -45,6 +45,7 @@ from flask_login import (
 )
 from sqlalchemy.orm.exc import NoResultFound
 
+from webapi.api.const import HTTP_HEADER_X_AUTH_UID
 from webapi.models.account import UserDAO
 from webapi.models.auth import FlaskDanceOauth
 from webapi.sqldb import sqldb
@@ -323,6 +324,24 @@ def auth_verify_user() -> Response:
     """
     resp = flask.make_response()
     resp.headers["UID"] = str(current_user.id)
+    return resp, 200
+
+
+@bp.route("/verify/user/<path>", methods=["GET"])
+@login_required
+def auth_verify_user_new() -> Response:
+    """
+    ---
+    get:
+        summary: Authenticate user (flask's "session" cookie)
+        tags:
+            - auth
+        responses:
+            401:
+                description: Unauthorized user.
+    """
+    resp = flask.make_response()
+    resp.headers[HTTP_HEADER_X_AUTH_UID] = str(current_user.id)
     return resp, 200
 
 

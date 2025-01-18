@@ -1,7 +1,7 @@
 # webapi: web api gateway
 
 Provides CRUD APIs for handling all queries from the UI, including user authentication, application search, and more.
-Check https://yag.im/api/docs/ for details.
+Check https://yag.im/api/docs for details.
 
 ## Development
 
@@ -9,10 +9,9 @@ Check https://yag.im/api/docs/ for details.
 
 Create *.devcontainer/secrets.env* file:
 
-    SQLDB_PASSWORD=
     FLASK_SECRET_KEY=***VALUE***
     FLASK_SECURITY_PASSWORD_SALT=***VALUE***
-
+    SIGSVC_AUTH_TOKEN=***VALUE***
     SQLDB_PASSWORD=***VALUE***
 
     # https://discord.com/developers/applications/1251213147776225341/oauth2
@@ -40,9 +39,9 @@ Then simply open this project in any IDE that supports devcontainers (VSCode is 
 
 ## Test
 
-You need to use "localhost" as OAuth providers wouldn't work with other domains.
+You need to use "localhost" because OAuth providers wouldn't work with other domains.
 
-1. Run yag-mcc
+1. Run webapp
 2. Open http://localhost:8080/api/, logout if needed
 3. Login using any auth method
 4. Now you can trigger API calls from http://localhost:8080/api/docs/
