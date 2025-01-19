@@ -1,6 +1,5 @@
 import os
 import typing as t
-import uuid
 from http import HTTPStatus
 
 import flask
@@ -309,48 +308,33 @@ def logout() -> None:
     return redirect("/")
 
 
-# because istio adds original requested resource path to the end, we need a wildcard pattern here
-@bp.route("/verify/user", methods=["GET"], defaults={"path": ""})
-@bp.route("/verify/user/<path:path>", methods=["GET"])
+# because envoyExtAuthzHttp adds original requested resource path to the end, we need a wildcard pattern here
+@bp.route("/verify/auth", methods=["GET"], defaults={"path": ""})
+@bp.route("/verify/auth/<path:path>", methods=["GET"])
 @login_required
-def auth_verify_user(path: str) -> Response:  # pylint: disable=unused-argument
+def auth_verify(path: str) -> Response:  # pylint: disable=unused-argument
     """
     ---
     get:
-        summary: Authenticate user (flask's "session" cookie)
+        summary: Authenticate user (through the flask's "session" cookie) or app (e.g. sigsvc_authtoken)
         tags:
             - auth
         responses:
+            200:
+                description: Authenticated user/app.
             401:
-                description: Unauthorized user.
+                description: Unauthenticated user/app.
     """
+    if "session" not in request.cookies:
+        # app2app auth
+        # TODO: work on a better and secure implementation
+        # e.g. we must accept consumer ids and auth token should be signed with a temp signature
+        sigsvc_auth_token = request.cookies.get("sigsvc_authtoken", None)
+        if not sigsvc_auth_token or sigsvc_auth_token != SIGSVC_AUTH_TOKEN:
+            return "", 401
+        return "", 200
+    elif not current_user.is_authenticated:
+        return app.login_manager.unauthorized()
     resp = flask.make_response()
-    resp.headers["UID"] = str(current_user.id)  # TODO: obsolete, drop
     resp.headers[HTTP_HEADER_X_AUTH_UID] = str(current_user.id)
     return resp, 200
-
-
-@bp.route("/verify/app", methods=["GET"], defaults={"path": ""})
-@bp.route("/verify/app/<path:path>", methods=["GET"])
-def auth_verify_app(path: str) -> Response:  # pylint: disable=unused-argument
-    """
-    ---
-    get:
-        summary: Authenticate app (various authtoken cookies)
-        tags:
-            - auth
-        responses:
-            401:
-                description: Unauthorized app.
-    """
-    # TODO: work on a better and secure implementation
-    # e.g. we must accept consumer ids and auth token should be signed with a temp signature
-    sigsvc_auth_token = request.cookies.get("sigsvc_authtoken", None)
-    foo_auth_token = request.cookies.get("foo_authtoken", None)
-    if not sigsvc_auth_token and not foo_auth_token:
-        return "", 401
-    if sigsvc_auth_token and sigsvc_auth_token != SIGSVC_AUTH_TOKEN:
-        return "", 401
-    if foo_auth_token and foo_auth_token != str(uuid.uuid4()):
-        return "", 401
-    return "", 200

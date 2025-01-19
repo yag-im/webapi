@@ -5,7 +5,7 @@ from flask import (
 )
 
 import webapi.biz.account as biz_account
-from webapi.api.const import HTTP_HEADER_X_UID
+from webapi.api.const import HTTP_HEADER_X_AUTH_UID
 from webapi.dto.account import (
     GetUserResponseDTO,
     UpdateUserRequestDTO,
@@ -28,7 +28,7 @@ def get_user() -> Response:
                     application/json:
                         schema: GetUserResponseDTO
     """
-    user_id = request.headers.get(HTTP_HEADER_X_UID, None)
+    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
     if not user_id:
         return "", 401
     user = biz_account.get_user(int(user_id))
@@ -54,7 +54,7 @@ def update_user() -> Response:
             401:
                 description: Unauthorized user.
     """
-    user_id = request.headers.get(HTTP_HEADER_X_UID, None)
+    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
     if not user_id:
         return "", 401
     user = UpdateUserRequestDTO.Schema().load(data=request.get_json())
