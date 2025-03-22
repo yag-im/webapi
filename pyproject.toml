@@ -16,7 +16,7 @@ python = "^3.11"
 apispec = {extras = ["marshmallow"], version = "^6.4.0"}
 apispec-webframeworks = {extras = ["flask"], version = "^1.0.0"}
 blinker = "^1.7.0"
-gunicorn = "^22.0.0"
+gunicorn = "^23.0.0"
 flask-dance = {extras = ["sqla"], version = "^7.0.0"}
 flask-login = "^0.6.3"
 flask-restful = "^0.3.10"
