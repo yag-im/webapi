@@ -202,6 +202,8 @@ class SearchAppsResponseItem:
     name: str
     slug: str
     year_released: int
+    platform: str
+    distro_format: str
 
 
 @dataclass
