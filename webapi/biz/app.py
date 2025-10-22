@@ -30,6 +30,7 @@ def search_apps(req: SearchAppsRequestDTO) -> SearchAppsResponseDTO:
     return appsvc.search_apps(
         SearchAppsRequestOutDTO(
             app_name=req.app_name,
+            publisher_name=req.publisher_name,
             kids_mode=kids_mode,
             offset=req.offset,
             limit=req.limit,

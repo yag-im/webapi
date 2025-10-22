@@ -186,6 +186,7 @@ class SearchAppsOrderBy(StrEnum):
 @dataclass
 class SearchAppsRequestOutDTO:
     app_name: t.Optional[str] = field(default=None, metadata={"validate": validate.Length(min=3)})
+    publisher_name: t.Optional[str] = field(default=None)
     kids_mode: bool = False
     offset: int = 0
     limit: int = 100
