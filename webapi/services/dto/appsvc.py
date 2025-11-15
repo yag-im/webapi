@@ -137,6 +137,8 @@ class AppReleaseDetails:
     ts_added: str
     uuid: str
     year_released: int
+    tags: list[str] | None
+    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
 
 @dataclass
@@ -206,6 +208,8 @@ class SearchAppsResponseItem:
     year_released: int
     platform: str
     distro_format: str
+    tags: list[str] | None
+    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
 
 
 @dataclass
