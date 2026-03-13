@@ -1,8 +1,18 @@
 import datetime
 import typing as t
+from enum import StrEnum
 
 from marshmallow import Schema
 from marshmallow_dataclass import dataclass
+
+
+class AgeMode(StrEnum):
+    KID = "K"
+    TEEN = "T"
+    ADULT = "A"
+
+
+DEFAULT_AGE_MODE = AgeMode.TEEN
 
 
 @dataclass

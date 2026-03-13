@@ -10,6 +10,11 @@ from marshmallow import (
 )
 from marshmallow_dataclass import dataclass
 
+from webapi.dto.account import (
+    DEFAULT_AGE_MODE,
+    AgeMode,
+)
+
 
 @dataclass
 class ContainerOpDescr:
@@ -190,7 +195,7 @@ class SearchAppsOrderBy(StrEnum):
 class SearchAppsRequestOutDTO:
     app_name: t.Optional[str] = field(default=None, metadata={"validate": validate.Length(min=3)})
     publisher_name: t.Optional[str] = field(default=None)
-    kids_mode: bool = False
+    age_mode: AgeMode = DEFAULT_AGE_MODE
     offset: int = 0
     limit: int = 100
     order_by: t.Optional[SearchAppsOrderBy] = field(default=SearchAppsOrderBy.TS_ADDED, metadata={"by_value": True})
