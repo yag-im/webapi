@@ -1,7 +1,6 @@
 import datetime
 
 from dateutil.relativedelta import relativedelta
-from flask import current_app as app
 from flask_login import (
     AnonymousUserMixin,
     current_user,
@@ -37,9 +36,6 @@ def search_apps(req: SearchAppsRequestDTO) -> SearchAppsResponseDTO:
             age_mode = AgeMode.TEEN
         else:
             age_mode = AgeMode.ADULT
-        app.logger.error(
-            f"user id: {current_user.id} user dob: {current_user.dob} user age: {age}, age_mode: {age_mode}"
-        )
 
     return appsvc.search_apps(
         SearchAppsRequestOutDTO(
