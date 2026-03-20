@@ -25,6 +25,7 @@ from webapi.api.auth import (
     login_twitch,
     logout,
 )
+from webapi.api.cluster import status
 from webapi.dto.account import (
     GetUserResponseDTO,
     UpdateUserRequestDTO,
@@ -36,6 +37,7 @@ from webapi.services.dto.appsvc import (
     SearchAppsAclResponseDTO,
     SearchAppsResponseDTO,
 )
+from webapi.services.dto.cluster_status import ClusterStatusResponseDTO
 
 spec = APISpec(
     title="webapi",
@@ -55,6 +57,8 @@ def setup_dtos() -> None:
     spec.components.schema("SearchAppsResponseDTO", schema=SearchAppsResponseDTO.Schema())
     spec.components.schema("SearchAppsAclRequestDTO", schema=SearchAppsAclRequestDTO.Schema())
     spec.components.schema("SearchAppsAclResponseDTO", schema=SearchAppsAclResponseDTO.Schema())
+    # cluster_status
+    spec.components.schema("ClusterStatusResponseDTO", schema=ClusterStatusResponseDTO.Schema())
 
 
 def setup_paths(app: Flask) -> None:
@@ -66,6 +70,8 @@ def setup_paths(app: Flask) -> None:
         spec.path(view=get_app_release)
         spec.path(view=search_apps)
         spec.path(view=search_apps_acl)
+        # cluster_status
+        spec.path(view=status)
         # auth
         spec.path(view=login_discord)
         spec.path(view=login_google)

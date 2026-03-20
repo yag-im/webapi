@@ -16,6 +16,7 @@ from webapi.api.auth import google_bp as auth_google_bp
 from webapi.api.auth import login_manager
 from webapi.api.auth import reddit_bp as auth_reddit_bp
 from webapi.api.auth import twitch_bp as auth_twitch_bp
+from webapi.api.cluster import bp as cluster_bp
 from webapi.biz import (
     errors,
     log_handler,
@@ -49,6 +50,7 @@ def create_app() -> Flask:
     app.register_blueprint(account_bp)
     app.register_blueprint(app_bp)
     app.register_blueprint(auth_bp)
+    app.register_blueprint(cluster_bp)
     app.register_blueprint(auth_google_bp, url_prefix="/auth/login")
     app.register_blueprint(auth_discord_bp, url_prefix="/auth/login")
     app.register_blueprint(auth_reddit_bp, url_prefix="/auth/login")

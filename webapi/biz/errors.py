@@ -11,6 +11,7 @@ from werkzeug.exceptions import HTTPException
 
 ERROR_YAG_OP = (1409, "webapi operational error")
 ERROR_APPSVC = (1409, "appsvc error")
+ERROR_JUKEBOXSVC = (1410, "jukeboxsvc error")
 ERROR_UNKNOWN = (1500, "unknown error")
 
 log = logging.getLogger("webapi")
@@ -34,6 +35,13 @@ class AppSvcException(BizException):
     def __init__(self, message: t.Optional[t.Any] = None) -> None:
         code = ERROR_APPSVC[0]
         message = message or ERROR_APPSVC[1]
+        super().__init__(code, message)
+
+
+class JukeboxSvcException(BizException):
+    def __init__(self, message: t.Optional[t.Any] = None) -> None:
+        code = ERROR_JUKEBOXSVC[0]
+        message = message or ERROR_JUKEBOXSVC[1]
         super().__init__(code, message)
 
 

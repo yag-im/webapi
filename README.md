@@ -33,6 +33,7 @@ Create *.devcontainer/secrets.env* file:
 The following devcontainers should be up and running:
 
     appsvc
+    jukeboxsvc
     sqldb
 
 Then simply open this project in any IDE that supports devcontainers (VSCode is recommended).

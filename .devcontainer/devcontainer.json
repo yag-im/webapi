@@ -6,6 +6,7 @@
     "runArgs": [
         "--name=yag-webapi",
         "--add-host=appsvc.yag.dc:host-gateway",
+        "--add-host=jukeboxsvc.yag.dc:host-gateway",
         "--add-host=sqldb.yag.dc:host-gateway",
         "--env-file=${localWorkspaceFolder}/.devcontainer/.env",
         "--env-file=${localWorkspaceFolder}/.devcontainer/secrets.env"
