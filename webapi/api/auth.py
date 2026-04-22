@@ -310,8 +310,8 @@ def logout() -> None:
 
 # because envoyExtAuthzHttp adds original requested resource path to the end, we need a wildcard pattern here
 # also envoyExtAuthzHttp sends original HTTP method lol
-@bp.route("/verify", methods=["GET", "POST", "PUT", "DELETE"], defaults={"path": ""})
-@bp.route("/verify/<path:path>", methods=["GET", "POST", "PUT", "DELETE"])
+@bp.route("/verify", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], defaults={"path": ""})
+@bp.route("/verify/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
 @login_required
 def auth_verify(path: str) -> Response:  # pylint: disable=unused-argument
     """
