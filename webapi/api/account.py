@@ -8,6 +8,7 @@ import webapi.biz.account as biz_account
 from webapi.api.const import HTTP_HEADER_X_AUTH_UID
 from webapi.dto.account import (
     GetUserResponseDTO,
+    PatchUserRequestDTO,
     UpdateUserRequestDTO,
 )
 
@@ -59,4 +60,32 @@ def update_user() -> Response:
         return "", 401
     user = UpdateUserRequestDTO.Schema().load(data=request.get_json())
     biz_account.update_user(int(user_id), user)
+    return "", 200
+
+
+@bp.route("/user", methods=["PATCH"])
+def patch_user() -> Response:
+    """
+    ---
+    patch:
+        summary: Partially update user info.
+        tags:
+            - account
+        requestBody:
+            required: true
+            content:
+                application/json:
+                    schema: PatchUserRequestDTO
+        responses:
+            200:
+                description: User info was successfully updated.
+            401:
+                description: Unauthorized user.
+    """
+    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
+    if not user_id:
+        return "", 401
+    payload = request.get_json() or {}
+    user = PatchUserRequestDTO.Schema().load(data=payload, partial=True)
+    biz_account.patch_user(int(user_id), user, set(payload.keys()))
     return "", 200

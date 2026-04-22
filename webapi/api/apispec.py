@@ -11,6 +11,7 @@ from flask import (
 
 from webapi.api.account import (
     get_user,
+    patch_user,
     update_user,
 )
 from webapi.api.app import (
@@ -28,6 +29,7 @@ from webapi.api.auth import (
 from webapi.api.cluster import status
 from webapi.dto.account import (
     GetUserResponseDTO,
+    PatchUserRequestDTO,
     UpdateUserRequestDTO,
 )
 from webapi.dto.app import SearchAppsRequestDTO
@@ -51,6 +53,7 @@ def setup_dtos() -> None:
     # account
     spec.components.schema("GetUserResponseDTO", schema=GetUserResponseDTO.Schema())
     spec.components.schema("UpdateUserRequestDTO", schema=UpdateUserRequestDTO.Schema())
+    spec.components.schema("PatchUserRequestDTO", schema=PatchUserRequestDTO.Schema())
     # app
     spec.components.schema("GetAppReleaseResponseDTO", schema=GetAppReleaseResponseDTO.Schema())
     spec.components.schema("SearchAppsRequestDTO", schema=SearchAppsRequestDTO.Schema())
@@ -66,6 +69,7 @@ def setup_paths(app: Flask) -> None:
         # account
         spec.path(view=get_user)
         spec.path(view=update_user)
+        spec.path(view=patch_user)
         # app
         spec.path(view=get_app_release)
         spec.path(view=search_apps)

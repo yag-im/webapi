@@ -7,6 +7,7 @@ from marshmallow import (
 )
 from marshmallow_dataclass import dataclass
 
+from webapi.dto.account import MyStuffType
 from webapi.services.dto.appsvc import SearchAppsOrderBy
 
 
@@ -17,4 +18,5 @@ class SearchAppsRequestDTO:
     limit: int = 100
     order_by: t.Optional[SearchAppsOrderBy] = field(default=SearchAppsOrderBy.TS_ADDED, metadata={"by_value": True})
     publisher_name: t.Optional[str] = field(default=None)
+    my_stuff: t.Optional[MyStuffType] = field(default=None)
     Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
