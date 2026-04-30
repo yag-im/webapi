@@ -194,6 +194,7 @@ class SearchAppsRequestOutDTO:
     publisher_name: t.Optional[str] = field(default=None)
     my_stuff: t.Optional[MyStuffType] = field(default=None)
     user_id: t.Optional[int] = None
+    lang: t.Optional[str] = field(default=None)
     offset: int = 0
     limit: int = 100
     order_by: t.Optional[SearchAppsOrderBy] = field(default=SearchAppsOrderBy.TS_ADDED, metadata={"by_value": True})

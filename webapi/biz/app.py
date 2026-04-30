@@ -23,6 +23,7 @@ def search_apps(req: SearchAppsRequestDTO) -> SearchAppsResponseDTO:
         SearchAppsRequestOutDTO(
             app_name=req.app_name,
             publisher_name=req.publisher_name,
+            lang=req.lang,
             my_stuff=req.my_stuff,
             user_id=current_user.id if not isinstance(current_user, AnonymousUserMixin) else None,
             offset=req.offset,

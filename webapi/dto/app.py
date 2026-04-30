@@ -19,4 +19,5 @@ class SearchAppsRequestDTO:
     order_by: t.Optional[SearchAppsOrderBy] = field(default=SearchAppsOrderBy.TS_ADDED, metadata={"by_value": True})
     publisher_name: t.Optional[str] = field(default=None)
     my_stuff: t.Optional[MyStuffType] = field(default=None)
+    lang: t.Optional[str] = field(default=None)
     Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
