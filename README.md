@@ -32,6 +32,7 @@ Create *.devcontainer/secrets.env* file:
 
 The following devcontainers should be up and running:
 
+    accountsvc
     appsvc
     jukeboxsvc
     sqldb

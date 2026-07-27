@@ -226,7 +226,8 @@ def login_google() -> str:
                 description: Redirect the user to the index page upon successfull authentication.
     """
     if not google.authorized:
-        return redirect(url_for("google.login"))
+        next_url = request.args.get("next_url")
+        return redirect(url_for("google.login", next_url=next_url))
     res = google.get("/user")
     username = res.json()["login"]
     return f"You are @{username} on Google"
@@ -245,7 +246,8 @@ def login_discord() -> str:
                 description: Redirect the user to the index page upon successfull authentication.
     """
     if not discord.authorized:
-        return redirect(url_for("discord.login"))
+        next_url = request.args.get("next_url")
+        return redirect(url_for("discord.login", next_url=next_url))
     res = discord.get("/user")
     username = res.json()["login"]
     return f"You are @{username} on Discord"
@@ -264,7 +266,8 @@ def login_reddit() -> str:
                 description: Redirect the user to the index page upon successfull authentication.
     """
     if not reddit.authorized:
-        return redirect(url_for("reddit.login"))
+        next_url = request.args.get("next_url")
+        return redirect(url_for("reddit.login", next_url=next_url))
     res = reddit.get("/user")
     username = res.json()["login"]
     return f"You are @{username} on Reddit"
@@ -283,7 +286,8 @@ def login_twitch() -> str:
                 description: Redirect the user to the index page upon successfull authentication.
     """
     if not twitch.authorized:
-        return redirect(url_for("twitch.login"))
+        next_url = request.args.get("next_url")
+        return redirect(url_for("twitch.login", next_url=next_url))
     res = twitch.get("/user")
     username = res.json()["login"]
     return f"You are @{username} on Twitch"
