@@ -10,6 +10,7 @@ from marshmallow import ValidationError
 from werkzeug.exceptions import HTTPException
 
 ERROR_YAG_OP = (1409, "webapi operational error")
+ERROR_ACCOUNTSVC = (1408, "accountsvc error")
 ERROR_APPSVC = (1409, "appsvc error")
 ERROR_JUKEBOXSVC = (1410, "jukeboxsvc error")
 ERROR_UNKNOWN = (1500, "unknown error")
@@ -28,6 +29,13 @@ class YagOpException(BizException):
     def __init__(self, message: t.Optional[t.Any] = None) -> None:
         code = ERROR_YAG_OP[0]
         message = message or ERROR_YAG_OP[1]
+        super().__init__(code, message)
+
+
+class AccountSvcException(BizException):
+    def __init__(self, message: t.Optional[t.Any] = None) -> None:
+        code = ERROR_ACCOUNTSVC[0]
+        message = message or ERROR_ACCOUNTSVC[1]
         super().__init__(code, message)
 
 

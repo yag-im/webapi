@@ -5,6 +5,7 @@
     },
     "runArgs": [
         "--name=yag-webapi",
+        "--add-host=accountsvc.yag.dc:host-gateway",
         "--add-host=appsvc.yag.dc:host-gateway",
         "--add-host=jukeboxsvc.yag.dc:host-gateway",
         "--add-host=sqldb.yag.dc:host-gateway",

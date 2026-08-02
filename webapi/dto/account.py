@@ -22,11 +22,13 @@ class MyStuffType(StrEnum):
 
 @dataclass
 class UserDC:
+    id: t.Optional[int]
     email: t.Optional[str]
     name: t.Optional[str]
     tz: str
     apps_lib: t.Optional[dict]
     dob: datetime.date
+    is_active: bool
 
 
 @dataclass
