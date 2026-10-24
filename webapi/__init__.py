@@ -1,69 +1,80 @@
+import json
 import logging
 import os
+import typing as t
+from pathlib import Path
 
-from flask import (
-    Flask,
-    request,
+from fastapi import (
+    FastAPI,
+    Request,
+    Response,
 )
-from werkzeug.middleware.proxy_fix import ProxyFix
+from fastapi.openapi.docs import get_swagger_ui_html
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from sqlalchemy import URL
+from starlette.middleware.sessions import SessionMiddleware
 
-from webapi.api import apispec
 from webapi.api.account import bp as account_bp
 from webapi.api.app import bp as app_bp
 from webapi.api.auth import bp as auth_bp
-from webapi.api.auth import discord_bp as auth_discord_bp
-from webapi.api.auth import google_bp as auth_google_bp
-from webapi.api.auth import login_manager
-from webapi.api.auth import reddit_bp as auth_reddit_bp
-from webapi.api.auth import twitch_bp as auth_twitch_bp
 from webapi.api.cluster import bp as cluster_bp
 from webapi.biz import (
     errors,
     log_handler,
 )
-from webapi.sqldb import sqldb
+from webapi.proxy_fix import ProxyFixMiddleware
+from webapi.sqldb import init_db
 
 log = logging.getLogger("webapi")
 
 BEHIND_PROXY = os.environ.get("BEHIND_PROXY", "false").lower() == "true"
+STATIC_DIR = Path(__file__).parent / "static"
 
 
-def create_app() -> Flask:
-    app = Flask(__name__, static_url_path="/api/static")
-    app.config.from_prefixed_env()
-    # composite config parameters
-    app.config["SQLALCHEMY_DATABASE_URI"] = (
-        f'postgresql://{os.environ["SQLDB_USERNAME"]}:{os.environ["SQLDB_PASSWORD"]}@{os.environ["SQLDB_HOST"]}:\
-        {os.environ["SQLDB_PORT"]}/{os.environ["SQLDB_DBNAME"]}'
+def create_app() -> FastAPI:
+    log_handler.init()
+    init_db(
+        URL.create(
+            "postgresql+psycopg",
+            username=os.environ["SQLDB_USERNAME"],
+            password=os.environ["SQLDB_PASSWORD"],
+            host=os.environ["SQLDB_HOST"],
+            port=int(os.environ["SQLDB_PORT"]),
+            database=os.environ["SQLDB_DBNAME"],
+        ),
+        json.loads(os.environ.get("SQLDB_ENGINE_OPTIONS", "{}")),
     )
 
-    # initialize flask extensions
-    login_manager.init_app(app)
-    sqldb.init_app(app)
+    app = FastAPI(title="webapi", version="1.0.0", openapi_url="/api/specs/", docs_url=None, redoc_url=None)
     errors.init_app(app)
-    log_handler.init_app(app)
 
-    if BEHIND_PROXY:
-        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+    app.include_router(account_bp)
+    app.include_router(app_bp)
+    app.include_router(auth_bp)
+    app.include_router(cluster_bp)
+    app.mount("/api/static", StaticFiles(directory=STATIC_DIR), name="static")
 
-    # register blueprints
-    app.register_blueprint(account_bp)
-    app.register_blueprint(app_bp)
-    app.register_blueprint(auth_bp)
-    app.register_blueprint(cluster_bp)
-    app.register_blueprint(auth_google_bp, url_prefix="/auth/login")
-    app.register_blueprint(auth_discord_bp, url_prefix="/auth/login")
-    app.register_blueprint(auth_reddit_bp, url_prefix="/auth/login")
-    app.register_blueprint(auth_twitch_bp, url_prefix="/auth/login")
+    @app.get("/api/docs/", include_in_schema=False)
+    def api_docs(request: Request) -> HTMLResponse:
+        return get_swagger_ui_html(
+            openapi_url=str(request.url_for("openapi")),
+            title="webapi",
+            swagger_js_url=str(request.url_for("static", path="js/swagger-ui-bundle.js")),
+            swagger_css_url=str(request.url_for("static", path="css/swagger-ui.css")),
+            swagger_favicon_url=str(request.url_for("static", path="img/favicon-32x32.png")),
+        )
 
-    # this must come after blueprints registration
-    apispec.init_app(app)
-
-    # pylint: disable=pointless-string-statement
-
-    @app.before_request
-    def log_request() -> None:
-        log.info(request.__dict__)
+    @app.middleware("http")
+    async def log_request(request: Request, call_next: t.Callable[[Request], t.Awaitable[Response]]) -> Response:
+        log.info("%s %s", request.method, request.url)
         log.info(request.headers)
+        return await call_next(request)
+
+    # user auth: signed cookie based session
+    app.add_middleware(SessionMiddleware, secret_key=os.environ["SECRET_KEY"], max_age=None, same_site="lax")
+    # must be the outermost middleware
+    if BEHIND_PROXY:
+        app.add_middleware(ProxyFixMiddleware)
 
     return app

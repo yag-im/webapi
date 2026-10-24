@@ -17,4 +17,4 @@ def get_cluster_status() -> ClusterStatusResponseDTO:
     )
     if res.status_code != 200:
         raise JukeboxSvcException(res.text)
-    return ClusterStatusResponseDTO.Schema().load(res.json())
+    return ClusterStatusResponseDTO.model_validate(res.json())

@@ -1,23 +1,23 @@
 import typing as t
-from dataclasses import field
 
-from marshmallow import (
-    Schema,
-    validate,
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
 )
-from marshmallow_dataclass import dataclass
 
 from webapi.dto.account import MyStuffType
+from webapi.dto.fields import ByName
 from webapi.services.dto.appsvc import SearchAppsOrderBy
 
 
-@dataclass
-class SearchAppsRequestDTO:
-    app_name: t.Optional[str] = field(default=None, metadata={"validate": validate.Length(min=2)})
+class SearchAppsRequestDTO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    app_name: t.Optional[str] = Field(default=None, min_length=2)
     offset: int = 0
     limit: int = 100
-    order_by: t.Optional[SearchAppsOrderBy] = field(default=SearchAppsOrderBy.TS_ADDED, metadata={"by_value": True})
-    publisher_name: t.Optional[str] = field(default=None)
-    my_stuff: t.Optional[MyStuffType] = field(default=None)
-    lang: t.Optional[str] = field(default=None)
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    order_by: t.Optional[SearchAppsOrderBy] = SearchAppsOrderBy.TS_ADDED
+    publisher_name: t.Optional[str] = None
+    my_stuff: t.Optional[t.Annotated[MyStuffType, ByName()]] = None
+    lang: t.Optional[str] = None

@@ -1,4 +1,3 @@
-import json
 import os
 
 from webapi.biz.errors import AppSvcException
@@ -19,26 +18,26 @@ def search_apps_acl(req: SearchAppsAclRequestDTO) -> SearchAppsAclResponseDTO:
     s = get_requests_session()
     res = s.post(
         url=f"{APPSVC_URL}/apps/search/acl",
-        data=json.dumps(SearchAppsAclRequestDTO.Schema().dump(req)),
+        data=req.model_dump_json(),
         headers={"Content-Type": "application/json"},
         timeout=REQUESTS_TIMEOUT_CONN_READ,
     )
     if res.status_code != 200:
         raise AppSvcException(res.text)
-    return res.json()
+    return SearchAppsAclResponseDTO.model_validate(res.json())
 
 
 def search_apps(req: SearchAppsRequestOutDTO) -> SearchAppsResponseDTO:
     s = get_requests_session()
     res = s.post(
         url=f"{APPSVC_URL}/apps/search",
-        data=json.dumps(SearchAppsRequestOutDTO.Schema().dump(req)),
+        data=req.model_dump_json(),
         headers={"Content-Type": "application/json"},
         timeout=REQUESTS_TIMEOUT_CONN_READ,
     )
     if res.status_code != 200:
         raise AppSvcException(res.text)
-    return res.json()
+    return SearchAppsResponseDTO.model_validate(res.json())
 
 
 def get_app_release(app_release_uuid: str) -> GetAppReleaseResponseDTO:
@@ -50,4 +49,4 @@ def get_app_release(app_release_uuid: str) -> GetAppReleaseResponseDTO:
     )
     if res.status_code != 200:
         raise AppSvcException(res.text)
-    return res.json()
+    return GetAppReleaseResponseDTO.model_validate(res.json())

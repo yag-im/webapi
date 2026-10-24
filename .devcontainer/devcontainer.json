@@ -11,11 +11,12 @@
         "--add-host=sqldb.yag.dc:host-gateway",
         "--env-file=${localWorkspaceFolder}/.devcontainer/.env",
         "--env-file=${localWorkspaceFolder}/.devcontainer/secrets.env"
-	],
+    ],
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-python.black-formatter",
+                "charliermarsh.ruff",
+                "ms-python.vscode-pylance",
                 "humao.rest-client"
             ]
         }

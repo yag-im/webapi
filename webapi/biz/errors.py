@@ -1,13 +1,14 @@
-import json
 import logging
 import typing as t
 
-from flask import (
-    Flask,
-    Response,
+from fastapi import (
+    FastAPI,
+    Request,
 )
-from marshmallow import ValidationError
-from werkzeug.exceptions import HTTPException
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
 
 ERROR_YAG_OP = (1409, "webapi operational error")
 ERROR_ACCOUNTSVC = (1408, "accountsvc error")
@@ -53,38 +54,24 @@ class JukeboxSvcException(BizException):
         super().__init__(code, message)
 
 
-def init_app(app: Flask) -> None:
-    """Inits error handlers.
+def init_app(app: FastAPI) -> None:
+    """Inits error handlers. HTTPExceptions keep FastAPI's default handling."""
 
-    Make sure FLASK_PROPAGATE_EXCEPTIONS is set to `true`, otherwise errorhandlers will be unreachable.
-    """
-
-    @app.errorhandler(Exception)
-    def handle_exception(e: Exception) -> Response:
-        if isinstance(e, HTTPException):
-            return e
-        res = json.dumps({"code": ERROR_UNKNOWN[0], "message": ERROR_UNKNOWN[1]})
+    @app.exception_handler(Exception)
+    async def handle_exception(request: Request, e: Exception) -> JSONResponse:
         log.exception(e)
-        return Response(res, mimetype="application/json", status=500)
+        return JSONResponse({"code": ERROR_UNKNOWN[0], "message": ERROR_UNKNOWN[1]}, status_code=500)
 
-    @app.errorhandler(ValidationError)
-    def handle_validation_error(e: ValidationError) -> Response:
-        res = json.dumps(
-            {
-                "code": 1400,
-                "message": e.messages,
-            }
-        )
+    @app.exception_handler(RequestValidationError)
+    @app.exception_handler(ValidationError)
+    async def handle_validation_error(request: Request, e: RequestValidationError | ValidationError) -> JSONResponse:
+        errors = e.errors() if isinstance(e, RequestValidationError) else e.errors(include_context=False)
+        res = {"code": 1400, "message": jsonable_encoder(errors)}
         log.error(res)
-        return Response(res, mimetype="application/json", status=400)
+        return JSONResponse(res, status_code=400)
 
-    @app.errorhandler(BizException)
-    def handle_biz_exception(e: BizException) -> Response:
-        res = json.dumps(
-            {
-                "code": e.code,
-                "message": e.message,
-            }
-        )
+    @app.exception_handler(BizException)
+    async def handle_biz_exception(request: Request, e: BizException) -> JSONResponse:
+        res = {"code": e.code, "message": jsonable_encoder(e.message)}
         log.error(res)
-        return Response(res, mimetype="application/json", status=409)
+        return JSONResponse(res, status_code=409)

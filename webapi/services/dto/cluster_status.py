@@ -1,15 +1,9 @@
-import typing as t
-
-from marshmallow import Schema
-from marshmallow_dataclass import dataclass
+from pydantic import BaseModel
 
 
-@dataclass
-class ClusterStatusResponseDTO:
-    @dataclass
-    class RegionUsage:
+class ClusterStatusResponseDTO(BaseModel):
+    class RegionUsage(BaseModel):
         region: str
         usage: float
 
     regions: list[RegionUsage]
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name

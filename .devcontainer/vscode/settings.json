@@ -3,9 +3,14 @@
     "editor.defaultFormatter": null,
     "python.formatting.provider": "none",
     "[python]": {
-        "editor.defaultFormatter": "ms-python.black-formatter",
-        "editor.formatOnSave": true
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+        }
     },
+    "python.analysis.typeCheckingMode": "standard",
     "python.testing.pytestArgs": [
         "tests"
     ],

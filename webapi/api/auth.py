@@ -1,345 +1,212 @@
+import logging
 import os
 import typing as t
+from enum import StrEnum
 from http import HTTPStatus
 
-import flask
-from flask import (
-    Blueprint,
+from authlib.integrations.starlette_client import (
+    OAuth,
+    OAuthError,
+)
+from fastapi import (
+    APIRouter,
+    Depends,
+    HTTPException,
+    Request,
     Response,
-    abort,
 )
-from flask import current_app as app
-from flask import (
-    redirect,
-    request,
-    url_for,
-)
-from flask_dance.consumer import (
-    oauth_authorized,
-    oauth_before_login,
-)
-from flask_dance.consumer.oauth2 import OAuth2ConsumerBlueprint
-from flask_dance.contrib.discord import (
-    discord,
-    make_discord_blueprint,
-)
-from flask_dance.contrib.google import (
-    google,
-    make_google_blueprint,
-)
-from flask_dance.contrib.reddit import (
-    make_reddit_blueprint,
-    reddit,
-)
-from flask_dance.contrib.twitch import (
-    make_twitch_blueprint,
-    twitch,
-)
-from flask_login import (
-    LoginManager,
-    current_user,
-    login_required,
-    login_user,
-    logout_user,
-)
-from sqlalchemy.orm.exc import NoResultFound
+from fastapi.responses import RedirectResponse
+from sqlalchemy import select
+from sqlalchemy.orm import Session
+from starlette.concurrency import run_in_threadpool
 
 from webapi.api.const import HTTP_HEADER_X_AUTH_UID
 from webapi.models.account import UserDAO
-from webapi.models.auth import FlaskDanceOauth
-from webapi.sqldb import sqldb
+from webapi.models.auth import OAuthDAO
+from webapi.sqldb import get_db
 
-SIGSVC_AUTH_TOKEN = os.environ["SIGSVC_AUTH_TOKEN"]
+log = logging.getLogger("webapi")
 
-login_manager = LoginManager()
-
-
-@login_manager.user_loader
-def load_user(user_id: str) -> UserDAO:
-    return UserDAO.query.get(user_id)
+SESSION_USER_ID = "user_id"
+SESSION_NEXT_URL = "next_url"
 
 
-@login_manager.unauthorized_handler
-def unauthorized() -> None:
-    abort(HTTPStatus.UNAUTHORIZED)
+class Provider(StrEnum):
+    GOOGLE = "google"
+    DISCORD = "discord"
+    REDDIT = "reddit"
+    TWITCH = "twitch"
 
 
-google_bp = make_google_blueprint(
+class ProviderUser(t.NamedTuple):
+    id: str
+    email: t.Optional[str] = None
+    name: t.Optional[str] = None
+
+
+oauth = OAuth()
+oauth.register(
+    Provider.GOOGLE,
     client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
     client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
-    scope=[
-        "https://www.googleapis.com/auth/userinfo.email",
-    ],
+    authorize_url="https://accounts.google.com/o/oauth2/auth",
+    access_token_url="https://accounts.google.com/o/oauth2/token",  # noqa: S106
+    api_base_url="https://www.googleapis.com/",
+    client_kwargs={"scope": "https://www.googleapis.com/auth/userinfo.email"},
 )
-
-discord_bp = make_discord_blueprint(
+oauth.register(
+    Provider.DISCORD,
     client_id=os.getenv("DISCORD_OAUTH_CLIENT_ID"),
     client_secret=os.getenv("DISCORD_OAUTH_CLIENT_SECRET"),
-    scope=["identify", "email"],
+    authorize_url="https://discord.com/api/oauth2/authorize",
+    authorize_params={"prompt": "consent"},
+    access_token_url="https://discord.com/api/oauth2/token",  # noqa: S106
+    api_base_url="https://discord.com/",
+    client_kwargs={"scope": "identify email"},
 )
-
-reddit_bp = make_reddit_blueprint(
+oauth.register(
+    Provider.REDDIT,
     client_id=os.getenv("REDDIT_OAUTH_CLIENT_ID"),
     client_secret=os.getenv("REDDIT_OAUTH_CLIENT_SECRET"),
-    scope=["identity"],  # reddit does not expose the user's email to 3rd parties
+    authorize_url="https://www.reddit.com/api/v1/authorize",
+    access_token_url="https://www.reddit.com/api/v1/access_token",  # noqa: S106
+    api_base_url="https://oauth.reddit.com/",
+    # reddit does not expose the user's email to 3rd parties; its API rejects generic user agents
+    user_agent="yag-webapi",
+    client_kwargs={"scope": "identity"},
 )
-
-twitch_bp = make_twitch_blueprint(
+oauth.register(
+    Provider.TWITCH,
     client_id=os.getenv("TWITCH_OAUTH_CLIENT_ID"),
     client_secret=os.getenv("TWITCH_OAUTH_CLIENT_SECRET"),
-    scope=["user:read:email"],
+    authorize_url="https://id.twitch.tv/oauth2/authorize",
+    access_token_url="https://id.twitch.tv/oauth2/token",  # noqa: S106
+    api_base_url="https://api.twitch.tv/helix/",
+    client_kwargs={
+        "scope": "user:read:email",
+        "token_endpoint_auth_method": "client_secret_post",
+        "headers": {"Client-Id": os.getenv("TWITCH_OAUTH_CLIENT_ID", "")},
+    },
 )
 
+# provider -> (user info endpoint, user info parser)
+USER_INFO: dict[Provider, tuple[str, t.Callable[[t.Any], ProviderUser]]] = {
+    Provider.GOOGLE: ("/oauth2/v3/userinfo", lambda u: ProviderUser(id=str(u["sub"]), email=u["email"])),
+    Provider.DISCORD: (
+        "/api/users/@me",
+        lambda u: ProviderUser(id=str(u["id"]), email=u["email"], name=u["username"]),
+    ),
+    Provider.REDDIT: ("/api/v1/me", lambda u: ProviderUser(id=str(u["id"]), name=u["name"])),
+    Provider.TWITCH: (
+        "/helix/users",
+        lambda u: ProviderUser(id=str(u["data"][0]["id"]), email=u["data"][0]["email"], name=u["data"][0]["login"]),
+    ),
+}
 
-def create_user_and_login(
-    bp_name: str, token: t.Dict, user_id: str, user_email: t.Optional[str] = None, user_name: t.Optional[str] = None
-) -> bool:
-    query = FlaskDanceOauth.query.filter_by(
-        provider=bp_name,
-        provider_user_id=user_id,
-    )
-    try:
-        oauth = query.one()
-    except NoResultFound:
-        oauth = FlaskDanceOauth(
-            provider=bp_name,
-            provider_user_id=user_id,
-            token=token,
-        )
-    if oauth.user is None:
+DbSession = t.Annotated[Session, Depends(get_db)]
+
+
+def get_current_user(request: Request, db: DbSession) -> t.Optional[UserDAO]:
+    user_id = request.session.get(SESSION_USER_ID)
+    return db.get(UserDAO, user_id) if user_id is not None else None
+
+
+CurrentUser = t.Annotated[t.Optional[UserDAO], Depends(get_current_user)]
+
+
+def login_required(user: CurrentUser) -> UserDAO:
+    if user is None:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED)
+    return user
+
+
+LoggedInUser = t.Annotated[UserDAO, Depends(login_required)]
+
+
+def sign_in_user(db: Session, provider: Provider, token: dict, provider_user: ProviderUser) -> t.Optional[int]:
+    """Returns id of the local user bound to the provider account (created if missing), or None if inactive."""
+    oauth_rec = db.scalars(
+        select(OAuthDAO).filter_by(provider=provider.value, provider_user_id=provider_user.id)
+    ).one_or_none()
+    if oauth_rec is None:
+        oauth_rec = OAuthDAO(provider=provider.value, provider_user_id=provider_user.id, token=token)
+    user = oauth_rec.user
+    if user is None:
         # If this OAuth token doesn't have an associated local account,
-        # create a new local user account for this user. We can log
-        # in that account as well, while we're at it.
-        user = UserDAO(
-            # Remember that `email` can be None, e.g. if the user declines
-            # to publish their email address on Google!
-            email=user_email,
-            name=user_name,
-        )
-        # Associate the new local user account with the OAuth token
-        oauth.user = user
-        # Save and commit our database models
-        sqldb.session.add_all([user, oauth])
-        sqldb.session.commit()
-    if login_user(oauth.user):
-        app.logger.debug(f"successfully signed in with {bp_name}.")
-    else:
-        app.logger.warn(f"user {user_name} can't be signed in (is user active?).")
-
-    next_url = flask.session["next_url"]
-
-    # Since we're manually creating the OAuth model in the database,
-    # we should return False so that Flask-Dance knows that
-    # it doesn't have to do it. If we don't return False, the OAuth token
-    # could be saved twice, or Flask-Dance could throw an error when
-    # trying to incorrectly save it for us.
-    return flask.redirect(next_url) if next_url else False
+        # create a new local user account for this user.
+        # Remember that `email` can be None, e.g. if the user declines
+        # to publish their email address on Google!
+        user = UserDAO(email=provider_user.email, name=provider_user.name)
+        oauth_rec.user = user
+        db.add(oauth_rec)
+        db.commit()
+    return user.id if user.is_active else None
 
 
-@oauth_authorized.connect_via(google_bp)
-def google_logged_in(blueprint: OAuth2ConsumerBlueprint, token: t.Dict) -> bool:
-    if not token:
-        app.logger.error("failed to log in with google")
-        return False
-    resp = blueprint.session.get("/oauth2/v3/userinfo")
-    if not resp.ok:
-        app.logger.error("failed to fetch user info from google")
-        return False
-    user_info = resp.json()
-    return create_user_and_login(
-        bp_name=blueprint.name, token=token, user_id=str(user_info["sub"]), user_email=user_info["email"]
-    )
+bp = APIRouter(prefix="/auth", tags=["auth"])
 
 
-@oauth_authorized.connect_via(discord_bp)
-def discord_logged_in(blueprint: OAuth2ConsumerBlueprint, token: t.Dict) -> bool:
-    if not token:
-        app.logger.error("failed to log in with discord")
-        return False
-    resp = blueprint.session.get("/api/users/@me")
-    if not resp.ok:
-        app.logger.error("failed to fetch user info from discord")
-        return False
-    user_info = resp.json()
-    return create_user_and_login(
-        bp_name=blueprint.name,
-        token=token,
-        user_id=str(user_info["id"]),
-        user_email=user_info["email"],
-        user_name=user_info["username"],
-    )
-
-
-@oauth_authorized.connect_via(reddit_bp)
-def reddit_logged_in(blueprint: OAuth2ConsumerBlueprint, token: t.Dict) -> bool:
-    if not token:
-        app.logger.error("failed to log in with reddit")
-        return False
-    resp = blueprint.session.get("/api/v1/me")
-    if not resp.ok:
-        app.logger.error("failed to fetch user info from reddit")
-        return False
-    user_info = resp.json()
-    return create_user_and_login(
-        bp_name=blueprint.name, token=token, user_id=str(user_info["id"]), user_name=user_info["name"]
-    )
-
-
-@oauth_authorized.connect_via(twitch_bp)
-def twitch_logged_in(blueprint: OAuth2ConsumerBlueprint, token: t.Dict) -> bool:
-    if not token:
-        app.logger.error("failed to log in with twitch")
-        return False
-    resp = blueprint.session.get("/helix/users")
-    if not resp.ok:
-        app.logger.error("failed to fetch user info from twitch")
-        return False
-    user_info = resp.json()["data"][0]
-    return create_user_and_login(
-        bp_name=blueprint.name,
-        token=token,
-        user_id=str(user_info["id"]),
-        user_email=user_info["email"],
-        user_name=user_info["login"],
-    )
-
-
-@oauth_before_login.connect
-def before_login(blueprint: OAuth2ConsumerBlueprint, url: str) -> None:
-    # pylint: disable=unused-argument
-    flask.session["next_url"] = flask.request.args.get("next_url")
-
-
-bp = Blueprint("auth", __name__, url_prefix="/auth")
-
-
-@bp.route("/google", methods=["GET"])
-def login_google() -> str:
-    """
-    ---
-    get:
-        summary: Authenticate user using Google.
-        tags:
-            - auth
-        responses:
-            302:
-                description: Redirect the user to the index page upon successfull authentication.
-    """
-    if not google.authorized:
-        next_url = request.args.get("next_url")
-        return redirect(url_for("google.login", next_url=next_url))
-    res = google.get("/user")
-    username = res.json()["login"]
-    return f"You are @{username} on Google"
-
-
-@bp.route("/discord", methods=["GET"])
-def login_discord() -> str:
-    """
-    ---
-    get:
-        summary: Authenticate user using Discord.
-        tags:
-            - auth
-        responses:
-            302:
-                description: Redirect the user to the index page upon successfull authentication.
-    """
-    if not discord.authorized:
-        next_url = request.args.get("next_url")
-        return redirect(url_for("discord.login", next_url=next_url))
-    res = discord.get("/user")
-    username = res.json()["login"]
-    return f"You are @{username} on Discord"
-
-
-@bp.route("/reddit", methods=["GET"])
-def login_reddit() -> str:
-    """
-    ---
-    get:
-        summary: Authenticate user using Reddit.
-        tags:
-            - auth
-        responses:
-            302:
-                description: Redirect the user to the index page upon successfull authentication.
-    """
-    if not reddit.authorized:
-        next_url = request.args.get("next_url")
-        return redirect(url_for("reddit.login", next_url=next_url))
-    res = reddit.get("/user")
-    username = res.json()["login"]
-    return f"You are @{username} on Reddit"
-
-
-@bp.route("/twitch", methods=["GET"])
-def login_twitch() -> str:
-    """
-    ---
-    get:
-        summary: Authenticate user using Twitch.
-        tags:
-            - auth
-        responses:
-            302:
-                description: Redirect the user to the index page upon successfull authentication.
-    """
-    if not twitch.authorized:
-        next_url = request.args.get("next_url")
-        return redirect(url_for("twitch.login", next_url=next_url))
-    res = twitch.get("/user")
-    username = res.json()["login"]
-    return f"You are @{username} on Twitch"
-
-
-@bp.route("/logout")
-@login_required
-def logout() -> None:
-    """
-    ---
-    get:
-        summary: Logout authenticated user.
-        tags:
-            - auth
-        responses:
-            302:
-                description: Redirect the user to the index page upon successfull logout.
-            401:
-                description: Unauthorized user.
-    """
-    logout_user()
-    return redirect("/")
+@bp.get(
+    "/logout",
+    summary="Logout authenticated user.",
+    status_code=HTTPStatus.FOUND,
+    response_description="Redirect the user to the index page upon successful logout.",
+    responses={401: {"description": "Unauthorized user."}},
+    dependencies=[Depends(login_required)],
+)
+def logout(request: Request) -> RedirectResponse:
+    request.session.pop(SESSION_USER_ID, None)
+    return RedirectResponse("/", status_code=HTTPStatus.FOUND)
 
 
 # because envoyExtAuthzHttp adds original requested resource path to the end, we need a wildcard pattern here
 # also envoyExtAuthzHttp sends original HTTP method lol
-@bp.route("/verify", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], defaults={"path": ""})
-@bp.route("/verify/<path:path>", methods=["GET", "POST", "PUT", "DELETE", "PATCH"])
-@login_required
-def auth_verify(path: str) -> Response:  # pylint: disable=unused-argument
-    """
-    ---
-    get:
-        summary: Authenticate user (through the flask's "session" cookie) or app (e.g. sigsvc_authtoken)
-        tags:
-            - auth
-        responses:
-            200:
-                description: Authenticated user/app.
-            401:
-                description: Unauthenticated user/app.
-    """
-    if "session" not in request.cookies:
-        # app2app auth
-        # TODO: work on a better and secure implementation
-        # e.g. we must accept consumer ids and auth token should be signed with a temp signature
-        sigsvc_auth_token = request.cookies.get("sigsvc_authtoken", None)
-        if not sigsvc_auth_token or sigsvc_auth_token != SIGSVC_AUTH_TOKEN:
-            return "", 401
-        return "", 200
-    elif not current_user.is_authenticated:
-        return app.login_manager.unauthorized()
-    resp = flask.make_response()
-    resp.headers[HTTP_HEADER_X_AUTH_UID] = str(current_user.id)
-    return resp, 200
+@bp.get(
+    "/verify",
+    summary='Authenticate user (through the "session" cookie).',
+    response_description="Authenticated user.",
+    responses={401: {"description": "Unauthenticated user."}},
+)
+@bp.api_route("/verify", methods=["POST", "PUT", "DELETE", "PATCH"], include_in_schema=False)
+@bp.api_route("/verify/{path:path}", methods=["GET", "POST", "PUT", "DELETE", "PATCH"], include_in_schema=False)
+def auth_verify(user: LoggedInUser) -> Response:
+    return Response(headers={HTTP_HEADER_X_AUTH_UID: str(user.id)})
+
+
+@bp.get(
+    "/{provider}",
+    summary="Authenticate user using an OAuth provider.",
+    status_code=HTTPStatus.FOUND,
+    response_description="Redirect the user to the provider's login page.",
+)
+@bp.get("/login/{provider}", include_in_schema=False)
+async def login(request: Request, provider: Provider, next_url: t.Optional[str] = None) -> Response:
+    request.session[SESSION_NEXT_URL] = next_url
+    redirect_uri = request.url_for("oauth_authorized", provider=provider.value)
+    return await oauth.create_client(provider).authorize_redirect(request, redirect_uri)
+
+
+@bp.get("/login/{provider}/authorized", include_in_schema=False, name="oauth_authorized")
+async def oauth_authorized(request: Request, provider: Provider, db: DbSession) -> RedirectResponse:
+    next_url = request.session.pop(SESSION_NEXT_URL, None) or "/"
+    client = oauth.create_client(provider)
+    try:
+        token = await client.authorize_access_token(request)
+    except OAuthError as e:
+        log.warning("failed to log in with %s: %s", provider, e)
+        return RedirectResponse("/", status_code=HTTPStatus.FOUND)
+
+    user_info_url, parse_user_info = USER_INFO[provider]
+    resp = await client.get(user_info_url, token=token)
+    if resp.is_error:
+        log.error("failed to fetch user info from %s", provider)
+        return RedirectResponse("/", status_code=HTTPStatus.FOUND)
+    provider_user = parse_user_info(resp.json())
+
+    user_id = await run_in_threadpool(sign_in_user, db, provider, dict(token), provider_user)
+    if user_id is not None:
+        request.session[SESSION_USER_ID] = user_id
+        log.debug("successfully signed in with %s.", provider)
+    else:
+        log.warning("user %s can't be signed in (is user active?).", provider_user.name)
+    return RedirectResponse(next_url, status_code=HTTPStatus.FOUND)

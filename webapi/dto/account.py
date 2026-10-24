@@ -2,8 +2,10 @@ import datetime
 import typing as t
 from enum import StrEnum
 
-from marshmallow import Schema
-from marshmallow_dataclass import dataclass
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+)
 
 
 class AgeMode(StrEnum):
@@ -20,32 +22,29 @@ class MyStuffType(StrEnum):
     RECENTLY_PLAYED = "recently_played"
 
 
-@dataclass
-class UserDC:
-    id: t.Optional[int]
-    email: t.Optional[str]
-    name: t.Optional[str]
+class UserDC(BaseModel):
+    id: t.Optional[int] = None
+    email: t.Optional[str] = None
+    name: t.Optional[str] = None
     tz: str
-    apps_lib: t.Optional[dict]
+    apps_lib: t.Optional[dict] = None
     dob: datetime.date
     is_active: bool
 
 
-@dataclass
 class GetUserResponseDTO(UserDC):
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    pass
 
 
-@dataclass
 class UpdateUserRequestDTO(UserDC):
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name
+    model_config = ConfigDict(extra="forbid")
 
 
-@dataclass
-class PatchUserRequestDTO:
+class PatchUserRequestDTO(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     email: t.Optional[str] = None
     name: t.Optional[str] = None
     tz: t.Optional[str] = None
     apps_lib: t.Optional[dict] = None
     dob: t.Optional[datetime.date] = None
-    Schema: t.ClassVar[t.Type[Schema]] = Schema  # pylint: disable=invalid-name

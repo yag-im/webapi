@@ -9,9 +9,8 @@ Check https://yag.im/api/docs for details.
 
 Create *.devcontainer/secrets.env* file:
 
-    FLASK_SECRET_KEY=***VALUE***
-    FLASK_SECURITY_PASSWORD_SALT=***VALUE***
-    SIGSVC_AUTH_TOKEN=***VALUE***
+    # signs the user session cookie
+    SECRET_KEY=***VALUE***
     SQLDB_PASSWORD=***VALUE***
 
     # https://discord.com/developers/applications/1251213147776225341/oauth2
@@ -44,19 +43,14 @@ Then simply open this project in any IDE that supports devcontainers (VSCode is 
 You need to use "localhost" because OAuth providers wouldn't work with other domains.
 
 1. Run webapp
-2. Open http://localhost:8080/api/, logout if needed
-3. Login using any auth method
-4. Now you can trigger API calls from http://localhost:8080/api/docs/
+2. Login using any auth method, e.g. open http://localhost:8080/auth/google?next_url=/api/docs/ (or `discord`, `reddit`, `twitch`)
+3. Now you can trigger API calls from http://localhost:8080/api/docs/
 
 ## Swagger UI notes
 
+Swagger UI is served by FastAPI from local assets (see `api_docs` in `webapi/__init__.py`). To update them:
+
     git clone --depth=1 --single-branch --branch "master" https://github.com/swagger-api/swagger-ui.git /tmp/swagger-ui
-    cp /tmp/swagger-ui/dist/*.css /workspaces/webapi/webapi/static/css
-    cp /tmp/swagger-ui/dist/*.png /workspaces/webapi/webapi/static/img
-    cp /tmp/swagger-ui/dist/*.js /workspaces/webapi/webapi/static/js
-    cp /tmp/swagger-ui/dist/index.html /workspaces/webapi/webapi/templates/swaggerui.html
-
-Then modify:
-
-    templates/swaggerui.html
-    js/swagger-initializer.js
+    cp /tmp/swagger-ui/dist/swagger-ui.css /workspaces/webapi/webapi/static/css
+    cp /tmp/swagger-ui/dist/favicon-32x32.png /workspaces/webapi/webapi/static/img
+    cp /tmp/swagger-ui/dist/swagger-ui-bundle.js /workspaces/webapi/webapi/static/js

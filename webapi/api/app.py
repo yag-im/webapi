@@ -1,10 +1,7 @@
-from flask import (
-    Blueprint,
-    Response,
-    request,
-)
+from fastapi import APIRouter
 
 import webapi.biz.app as biz_app
+from webapi.api.auth import CurrentUser
 from webapi.dto.app import SearchAppsRequestDTO
 from webapi.services.dto.appsvc import (
     GetAppReleaseResponseDTO,
@@ -13,72 +10,19 @@ from webapi.services.dto.appsvc import (
     SearchAppsResponseDTO,
 )
 
-bp = Blueprint("app", __name__, url_prefix="/api/apps")
+bp = APIRouter(prefix="/api/apps", tags=["application"])
 
 
-@bp.route("/<app_release_uuid>", methods=["GET"])
-def get_app_release(app_release_uuid: str) -> Response:
-    """
-    ---
-    get:
-        summary: Get application release details.
-        tags:
-            - application
-        parameters:
-            - in: path
-              type: integer
-              name: app_release_uuid
-              description: App release UUID
-        responses:
-            200:
-                content:
-                    application/json:
-                        schema: GetAppReleaseResponseDTO
-    """
-    return GetAppReleaseResponseDTO.Schema().dump(biz_app.get_app_release(app_release_uuid))
+@bp.get("/{app_release_uuid}", summary="Get application release details.")
+def get_app_release(app_release_uuid: str) -> GetAppReleaseResponseDTO:
+    return biz_app.get_app_release(app_release_uuid)
 
 
-@bp.route("/search", methods=["POST"])
-def search_apps() -> Response:
-    """
-    ---
-    post:
-        summary: Search applications.
-        tags:
-            - application
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: SearchAppsRequestDTO
-        responses:
-            200:
-                content:
-                    application/json:
-                        schema: SearchAppsResponseDTO
-    """
-    req: SearchAppsRequestDTO = SearchAppsRequestDTO.Schema().load(data=request.get_json())
-    return SearchAppsResponseDTO.Schema().dump(biz_app.search_apps(req))
+@bp.post("/search", summary="Search applications.")
+def search_apps(req: SearchAppsRequestDTO, user: CurrentUser) -> SearchAppsResponseDTO:
+    return biz_app.search_apps(req, user.id if user else None)
 
 
-@bp.route("/search/acl", methods=["POST"])
-def search_apps_acl() -> Response:
-    """
-    ---
-    post:
-        summary: "Search helper: auto-complete list."
-        tags:
-            - application
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: SearchAppsAclRequestDTO
-        responses:
-            200:
-                content:
-                    application/json:
-                        schema: SearchAppsAclResponseDTO
-    """
-    req: SearchAppsAclRequestDTO = SearchAppsAclRequestDTO.Schema().load(data=request.get_json())
-    return SearchAppsAclResponseDTO.Schema().dump(biz_app.search_apps_acl(req))
+@bp.post("/search/acl", summary="Search helper: auto-complete list.")
+def search_apps_acl(req: SearchAppsAclRequestDTO) -> SearchAppsAclResponseDTO:
+    return biz_app.search_apps_acl(req)

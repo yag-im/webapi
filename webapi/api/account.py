@@ -1,7 +1,11 @@
-from flask import (
-    Blueprint,
+import typing as t
+from http import HTTPStatus
+
+from fastapi import (
+    APIRouter,
+    Header,
+    HTTPException,
     Response,
-    request,
 )
 
 from webapi.api.const import HTTP_HEADER_X_AUTH_UID
@@ -12,80 +16,42 @@ from webapi.dto.account import (
 )
 from webapi.services import accountsvc
 
-bp = Blueprint("account", __name__, url_prefix="/api/accounts")
+bp = APIRouter(prefix="/api/accounts", tags=["account"])
+
+# set by the gateway after a successful /auth/verify
+AuthUid = t.Annotated[t.Optional[str], Header(alias=HTTP_HEADER_X_AUTH_UID)]
+
+UNAUTHORIZED_RESPONSE: dict[int | str, dict[str, t.Any]] = {401: {"description": "Unauthorized user."}}
 
 
-@bp.route("/user", methods=["GET"])
-def get_user() -> Response:
-    """
-    ---
-    get:
-        summary: Get user info.
-        tags:
-            - account
-        responses:
-            200:
-                content:
-                    application/json:
-                        schema: GetUserResponseDTO
-    """
-    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
-    if not user_id:
-        return "", 401
-    user = accountsvc.get_user(int(user_id))
-    return GetUserResponseDTO.Schema().dump(user)
+def _require_uid(uid: t.Optional[str]) -> int:
+    if not uid:
+        raise HTTPException(HTTPStatus.UNAUTHORIZED)
+    return int(uid)
 
 
-@bp.route("/user", methods=["PUT"])
-def update_user() -> Response:
-    """
-    ---
-    put:
-        summary: Update user info.
-        tags:
-            - account
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: UpdateUserRequestDTO
-        responses:
-            200:
-                description: User info was successfully updated.
-            401:
-                description: Unauthorized user.
-    """
-    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
-    if not user_id:
-        return "", 401
-    user = UpdateUserRequestDTO.Schema().load(data=request.get_json())
-    accountsvc.update_user(int(user_id), user)
-    return "", 200
+@bp.get("/user", summary="Get user info.", responses=UNAUTHORIZED_RESPONSE)
+def get_user(x_auth_uid: AuthUid = None) -> GetUserResponseDTO:
+    return accountsvc.get_user(_require_uid(x_auth_uid))
 
 
-@bp.route("/user", methods=["PATCH"])
-def patch_user() -> Response:
-    """
-    ---
-    patch:
-        summary: Partially update user info.
-        tags:
-            - account
-        requestBody:
-            required: true
-            content:
-                application/json:
-                    schema: PatchUserRequestDTO
-        responses:
-            200:
-                description: User info was successfully updated.
-            401:
-                description: Unauthorized user.
-    """
-    user_id = request.headers.get(HTTP_HEADER_X_AUTH_UID, None)
-    if not user_id:
-        return "", 401
-    payload = request.get_json() or {}
-    user = PatchUserRequestDTO.Schema().load(data=payload, partial=True)
-    accountsvc.patch_user(int(user_id), user, set(payload.keys()))
-    return "", 200
+@bp.put(
+    "/user",
+    summary="Update user info.",
+    response_description="User info was successfully updated.",
+    responses=UNAUTHORIZED_RESPONSE,
+)
+def update_user(user: UpdateUserRequestDTO, x_auth_uid: AuthUid = None) -> Response:
+    accountsvc.update_user(_require_uid(x_auth_uid), user)
+    return Response(status_code=HTTPStatus.OK)
+
+
+@bp.patch(
+    "/user",
+    summary="Partially update user info.",
+    response_description="User info was successfully updated.",
+    responses=UNAUTHORIZED_RESPONSE,
+)
+def patch_user(user: t.Optional[PatchUserRequestDTO] = None, x_auth_uid: AuthUid = None) -> Response:
+    accountsvc.patch_user(_require_uid(x_auth_uid), user or PatchUserRequestDTO())
+    return Response(status_code=HTTPStatus.OK)
