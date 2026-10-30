@@ -80,6 +80,8 @@ class AppReleaseDetails(BaseModel):
         loading_duration: t.Optional[int] = 0
 
     class GameRefs(BaseModel):
+        model_config = ConfigDict(coerce_numbers_to_str=True)
+
         ag_id: t.Optional[str] = None
         lutris_id: t.Optional[str] = None
         mg_id: t.Optional[int] = None
